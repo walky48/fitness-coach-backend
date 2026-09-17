@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Koç</title>
+
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#15151B" />
+
+  <!-- iOS: ana ekrana eklenince tam ekran/standalone açılması için -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Koç" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <span class="topbar__title">Koç</span>
+      <button id="logMenuBtn" class="iconbtn" aria-label="Hızlı kayıt" title="Hızlı kayıt">＋</button>
+    </header>
+
+    <!-- iOS'ta native "yükle" istemi olmadığı için elle yönlendiriyoruz -->
+    <div id="installBanner" class="banner" hidden>
+      <span id="installBannerText"></span>
+      <button id="installBannerAction" class="banner__action" hidden>Yükle</button>
+      <button id="installBannerClose" class="banner__close" aria-label="Kapat">×</button>
+    </div>
+
+    <main id="thread" class="thread" aria-live="polite"></main>
+
+    <div id="quickLog" class="quicklog" hidden>
+      <button class="chip" data-quick="workout">Antrenman logla</button>
+      <button class="chip" data-quick="meal">Öğün logla</button>
+      <button class="chip" data-quick="metrics">Kilo/ölçüm gir</button>
+      <button class="chip" data-quick="photo">İlerleme fotoğrafı</button>
+    </div>
+
+    <form id="composer" class="composer">
+      <label class="composer__attach" title="Fotoğraf ekle">
+        <input id="photoInput" type="file" accept="image/*" capture="environment" hidden />
+        📷
+      </label>
+      <textarea
+        id="messageInput"
+        class="composer__input"
+        rows="1"
+        placeholder="Bugün ne yaptın, ne soracaksın?"
+      ></textarea>
+      <button id="sendBtn" type="submit" class="composer__send" aria-label="Gönder">↑</button>
+    </form>
+    <div id="pendingPhoto" class="pending-photo" hidden>
+      <img id="pendingPhotoPreview" alt="Seçilen fotoğraf" />
+      <button id="pendingPhotoRemove" aria-label="Fotoğrafı kaldır">×</button>
+    </div>
+  </div>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>
