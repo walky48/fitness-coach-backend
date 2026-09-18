@@ -131,6 +131,9 @@ els.composer.addEventListener("submit", async (e) => {
 
   const userMsg = { role: "user", text: text || "(fotoğraf)", imageUrl: pendingPhoto?.previewUrl };
   appendMessage(userMsg);
+  // Backend'e gönderilecek geçmiş: yeni mesaj eklenmeden ÖNCEki thread hali
+  // (yeni mesaj zaten ayrı "message" alanıyla gidiyor, tekrar etmesin).
+  const historyToSend = thread.slice(-20).map(({ role, text }) => ({ role, text }));
   thread.push({ role: "user", text: userMsg.text });
   saveThread(thread);
 
@@ -144,6 +147,14 @@ els.composer.addEventListener("submit", async (e) => {
 
   const pendingEl = appendMessage({ role: "coach", text: "…", status: "pending" });
 
+  // Yanıt çok uzun sürerse (model birkaç tool çağrısı zinciri yaparsa vs.)
+  // istek süresiz asılı kalmasın diye bir üst sınır koyuyoruz. Detaylı
+  // cevaplar streaming olmadığı için 30-50sn sürebiliyor — bu yüzden sınırı
+  // backend'deki vercel.json maxDuration'ının (60sn) üzerinde tutuyoruz ki
+  // gerçekten uzun süren ama başarılı bir yanıtı erken kesmeyelim.
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 75000);
+
   try {
     const res = await fetch("/api/chat", {
       method: "POST",
@@ -152,19 +163,29 @@ els.composer.addEventListener("submit", async (e) => {
         message: text || undefined,
         imageBase64: photoToSend?.base64,
         imageMediaType: photoToSend?.mediaType,
+        history: historyToSend,
       }),
+      signal: controller.signal,
     });
-    const data = await res.json();
+
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      throw new Error(`Sunucudan beklenmeyen bir cevap geldi (HTTP ${res.status})`);
+    }
     pendingEl.remove();
-    if (!res.ok) throw new Error(data.error || "Sunucu hatası");
+    if (!res.ok) throw new Error(data.error || `Sunucu hatası (HTTP ${res.status})`);
 
     appendMessage({ role: "coach", text: data.reply });
     thread.push({ role: "coach", text: data.reply });
     saveThread(thread);
   } catch (err) {
     pendingEl.remove();
-    appendMessage({ role: "coach", text: `Bağlanamadım: ${err.message}`, status: "error" });
+    const msg = err.name === "AbortError" ? "Yanıt 75 saniyeden uzun sürdü, zaman aşımına uğradı." : err.message;
+    appendMessage({ role: "coach", text: `Bağlanamadım: ${msg}`, status: "error" });
   } finally {
+    clearTimeout(timeoutId);
     els.sendBtn.disabled = false;
   }
 });
